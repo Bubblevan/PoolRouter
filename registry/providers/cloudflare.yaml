@@ -1,0 +1,39 @@
+id: cloudflare
+display_name: Cloudflare Workers AI
+lifecycle: FREE_ALLOWANCE
+admission: {free_pool: false, trial_pool: false, eval_pool: false, default_enabled: false, conditional: true, requires: [CLOUDFLARE_WORKERS_PLAN=free, hard_neuron_quota_guard, current_model_free_availability]}
+access: {official_api: true, auth: api_token, credential_env: CLOUDFLARE_API_TOKEN}
+billing:
+  price_free: false
+  allowance_free: true
+  possible_auto_charge: true
+  zero_cost_basis: finite_daily_neuron_allowance
+  conditional_on: [account_plan_free]
+  hard_local_quota_guard: false
+  notes: Workers Free usage above 10000 Neurons/day fails; Workers Paid usage above included 10000 Neurons/day is billable. Never admit Paid or unknown plans until a conservative local Neuron guard exists.
+quota:
+  scope: account
+  dimensions: [neurons_per_day]
+  runtime_headers: false
+  daily_allowance: 10000
+  reset: 00:00 UTC
+  notes: Workers Free allowance. Actual model usage is positive Neuron consumption, so allowance-free does not mean price-free.
+privacy:
+  classification: REVIEW_REQUIRED
+  public_code: true
+  private_code: conditional
+  sensitive_data: false
+  training_policy: Verify the Cloudflare and upstream model terms/privacy policy for each model before private data use.
+  opt_out: Model/provider-specific review required.
+legal:
+  intended_use: Cloudflare Workers AI account use within selected Workers plan and applicable model terms.
+  private_single_user_gateway: candidate
+  resale: false
+account_assertions:
+  - key: CLOUDFLARE_WORKERS_PLAN
+    allowed_values: [free, paid, unknown]
+    source_confidence: USER_ASSERTED
+evidence:
+  - {id: cloudflare-workers-ai-pricing, authority: official, type: pricing, confidence: OFFICIAL_CURRENT, url: https://developers.cloudflare.com/workers-ai/platform/pricing/, claim: "Workers AI is included in Workers Free and Paid; paid consumption is $0.011/1000 Neurons; Free includes 10000 Neurons/day resetting 00:00 UTC and overage fails on Free but is billable on Paid.", checked_at: 2026-10-04, refresh_after_days: 7}
+  - {id: cloudflare-glm53-catalog, authority: official, type: model_catalog, confidence: OFFICIAL_CURRENT, url: https://developers.cloudflare.com/workers-ai/models/glm-5.3/, claim: "@cf/zai-org/glm-5.3 requires Workers Paid or prepaid AI Gateway credits; this is a known paid-only example, not an exhaustive catalog snapshot.", checked_at: 2026-10-04, refresh_after_days: 7}
+  - {id: cloudflare-model-catalog, authority: official, type: model_catalog, confidence: OFFICIAL_CURRENT, url: https://developers.cloudflare.com/workers-ai/models/, claim: Model catalog is dynamic and must be checked per model and plan; this registry does not claim a complete paid-only list., checked_at: 2026-10-04, refresh_after_days: 7}

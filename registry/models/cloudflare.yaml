@@ -1,0 +1,17 @@
+provider: cloudflare
+snapshot_checked_at: 2026-10-04
+snapshot_exhaustive: false
+models:
+  - id: "@cf/zai-org/glm-5.3"
+    availability:
+      workers_free: false
+      workers_paid: true
+    evidence:
+      - id: cloudflare-glm53-paid-only
+        authority: official
+        type: model_catalog
+        confidence: OFFICIAL_CURRENT
+        url: https://developers.cloudflare.com/workers-ai/models/glm-5.3/
+        claim: Paid access required; unavailable through standard Workers Free billing, available with Workers Paid or prepaid AI Gateway credits.
+        checked_at: 2026-10-04
+        refresh_after_days: 7

@@ -35,6 +35,16 @@ Line references above are local references and point to the checked-out source, 
 
 The audit does not establish compatibility for transitive dependencies. Review the selected LiteLLM distribution and dependency licenses before release.
 
+## M0.5 evidence and pin update (2026-10-04)
+
+The M0 statement above was a local-source-only audit. M0.5 separately reviewed current official provider sources and selected the then-latest stable LiteLLM release, v1.103.2 (commit `f69b2103dfc0f7a41f65555fd66df05274584e5a`), instead of the earlier suggested v1.103.0. The pin and license decision are recorded in ADR 0004. The release's published fixes do not state a relevant breaking change, but M1 must validate the actual proxy/Responses/streaming contract.
+
+The LiteLLM boundary is unchanged: import the MIT/community package as an external dependency, do not vendor it, and do not use or copy `enterprise/`. PoolRouter continues to own admission, evidence freshness, privacy, lifecycle, billing guards, and quota scope. The license matrix and community replacements are in ADR 0004.
+
+One M0 architecture assumption is corrected: although the core LiteLLM SDK is MIT, the selected 1.103.2 PyPI metadata shows its optional `proxy` extra depends on the separate `litellm-enterprise==0.1.69.post1` package. PoolRouter does not select that extra. M1 should provide its local HTTP API layer using community FastAPI plus the core LiteLLM SDK, with PoolRouter-owned Responses/streaming adapters as needed. The bare core dependency in `pyproject.toml` does not pull the proxy extra.
+
+Provider assumptions that changed are recorded explicitly in `provider-policy.md` and ADR 0005. The evidence snapshot is generated from the four provider YAML records. M0's original statements above remain a historical record, not the current evidence state.
+
 ## Explicit implementation choice
 
 PoolRouter will import LiteLLM as a dependency for gateway protocol and provider compatibility; it will adapt the concepts from FreeLLMAPI and FreeRouter; and it will rewrite PoolRouter-owned evidence, lifecycle, privacy, billing-guard, and quota-scope policy. M0 copies no code. Any later source copying requires a separate review of the exact files and their notices.

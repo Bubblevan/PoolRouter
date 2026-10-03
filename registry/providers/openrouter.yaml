@@ -1,0 +1,46 @@
+id: openrouter
+display_name: OpenRouter
+lifecycle: FREE_ALLOWANCE
+admission: {free_pool: true, trial_pool: false, eval_pool: false, default_enabled: true, conditional: true, requires: [concrete_model, current_model_pricing, current_zero_price, fresh_official_evidence]}
+access: {official_api: true, auth: api_key, credential_env: OPENROUTER_API_KEY}
+billing:
+  price_free: model_dependent
+  allowance_free: true
+  possible_auto_charge: false
+  zero_cost_basis: free_plan_request_allowance_and_concrete_model_zero_price
+  conditional_on: [free_account_plan, concrete_model_input_and_output_price_zero]
+  hard_local_quota_guard: false
+  free_plan_payment_method: false
+  notes: Free plan pricing page currently states no payment options and 50 requests/day. No silent transition to paid usage is documented; do not add payment instruments or treat paid model IDs as free.
+quota:
+  scope: account
+  dimensions: [rpd]
+  runtime_headers: true
+  daily_allowance: 50
+  reset: provider-defined daily window; confirm from current account/provider response before runtime implementation
+  notes: Pricing page describes 50 requests per day for the Free plan; model-specific free status is volatile.
+privacy:
+  classification: CONDITIONAL
+  public_code: true
+  private_code: conditional
+  sensitive_data: false
+  training_policy: Upstream provider retention and training policies differ; Free plan does not include higher-tier Data Policy-Based Routing.
+  opt_out: Do not assume generic opt-out is effective on Free; require verified provider/model policy and routing controls for private code.
+  notes: openrouter/free is public-only. Concrete provider/model:free still requires current $0 input and output pricing and safe modality policy.
+legal:
+  intended_use: Personal private gateway with one account; route only concrete currently free model deployments.
+  private_single_user_gateway: candidate
+  resale: false
+catalog:
+  dynamic: true
+  url: https://openrouter.ai/models
+  admission_rule: Require a concrete model with current zero input and output price and no hidden modality charge; generic free alias is public-only.
+  aliases:
+    - {name: openrouter/free, data_class: public_only}
+    - {name: provider/model:free, data_class: individually_reviewed}
+evidence:
+  - {id: openrouter-free-pricing, authority: official, type: pricing, confidence: OFFICIAL_CURRENT, url: https://openrouter.ai/pricing, claim: "Free plan lists 25+ free models, API access, no payment options, and 50 requests/day; availability and per-model pricing must be checked dynamically.", checked_at: 2026-10-04, refresh_after_days: 7}
+  - {id: openrouter-free-billing, authority: official, type: billing, confidence: OFFICIAL_CURRENT, url: https://openrouter.ai/pricing, claim: "Free plan has no payment options; do not attach paid credits/payment methods to a free-only account state.", checked_at: 2026-10-04, refresh_after_days: 14}
+  - {id: openrouter-terms, authority: official, type: terms, confidence: OFFICIAL_CURRENT, url: https://openrouter.ai/terms, claim: "Terms make the account holder responsible for API credential activity and charges, prohibit reselling API access and creating multiple accounts to bypass limits, and leave model terms/provider practices model-specific.", checked_at: 2026-10-04, refresh_after_days: 30}
+  - {id: openrouter-privacy-routing, authority: official, type: privacy, confidence: OFFICIAL_CURRENT, url: https://openrouter.ai/docs/guides/privacy/provider-logging, claim: "Provider logging and training policies vary; controls and provider eligibility vary by plan, and free plan does not include Data Policy-Based Routing.", checked_at: 2026-10-04, refresh_after_days: 30}
+  - {id: openrouter-model-catalog, authority: official, type: model_catalog, confidence: OFFICIAL_CURRENT, url: https://openrouter.ai/models, claim: Dynamic catalog is discovery only; concrete model price and policy must be revalidated before admission., checked_at: 2026-10-04, refresh_after_days: 7}

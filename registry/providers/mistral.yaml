@@ -1,0 +1,43 @@
+id: mistral
+display_name: Mistral AI Studio
+lifecycle: EVAL_ONLY
+admission: {free_pool: false, trial_pool: false, eval_pool: true, default_enabled: false, conditional: true, requires: [MISTRAL_ENABLE=true, MISTRAL_TRAINING_OPT_OUT_CONFIRMED=true, MISTRAL_BUSINESS_TERMS_ACCEPTED=true]}
+access: {official_api: true, auth: api_key, credential_env: MISTRAL_API_KEY}
+billing:
+  price_free: model_dependent
+  allowance_free: true
+  possible_auto_charge: true
+  zero_cost_basis: included_free_mode_usage_only
+  conditional_on: [explicit_eval_opt_in, stop_before_payg_overage]
+  hard_local_quota_guard: false
+  free_plan_payment_method: false
+  notes: Free mode is enabled without a card, but pay-as-you-go may extend usage beyond included monthly usage. Keep outside free pool and stop before paid overage.
+quota:
+  scope: organization
+  dimensions: [monthly_included_usage, model_rate_limits]
+  runtime_headers: true
+  notes: Exact included usage and model/org limits are shown in Studio and vary by account/model.
+privacy:
+  classification: REVIEW_REQUIRED
+  public_code: true
+  private_code: false
+  sensitive_data: false
+  training_policy: Training is possible depending on product settings; Labs/Preview may use Customer Data and Outputs to train. Free mode default must be treated as possible training.
+  opt_out: Require operator confirmation of training opt-out; verify applicable product setting and terms. Exclude Preview/Labs routes.
+  notes: Country-specific terms vary; the reviewed Rest of World consumer terms exclude Studio/API and are not a substitute for reviewing the applicable regional terms.
+legal:
+  intended_use: Evaluation/prototyping only after business terms and product-specific data controls are confirmed.
+  api_customer_scope: business
+  personal_consumer_api: not_cleanly_supported
+  private_single_user_gateway: false
+  resale: false
+account_assertions:
+  - {key: MISTRAL_ENABLE, allowed_values: ["true"], source_confidence: USER_ASSERTED}
+  - {key: MISTRAL_TRAINING_OPT_OUT_CONFIRMED, allowed_values: ["true"], source_confidence: USER_ASSERTED}
+  - {key: MISTRAL_BUSINESS_TERMS_ACCEPTED, allowed_values: ["true"], source_confidence: USER_ASSERTED}
+evidence:
+  - {id: mistral-studio-activation, authority: official, type: billing, confidence: OFFICIAL_CURRENT, url: https://docs.mistral.ai/getting-started/quickstarts/studio/activate-and-generate-api-key, claim: "Free mode API access is enabled by default without a credit card; usage and rate limits apply.", checked_at: 2026-10-04, refresh_after_days: 14}
+  - {id: mistral-usage-limits, authority: official, type: billing, confidence: OFFICIAL_CURRENT, url: https://docs.mistral.ai/admin/billing-usage/usage-limits, claim: "Free mode includes monthly usage; pay-as-you-go lets users extend usage beyond included usage, creating overage billing risk.", checked_at: 2026-10-04, refresh_after_days: 14}
+  - {id: mistral-free-evaluation-scope, authority: official, type: capability, confidence: OFFICIAL_CURRENT, url: https://help.mistral.ai/en/articles/698531-why-am-i-hitting-api-rate-limits-and-how-do-i-increase-them, claim: "Free mode has the lowest default limits and is intended for evaluation and prototyping.", checked_at: 2026-10-04, refresh_after_days: 30}
+  - {id: mistral-commercial-terms, authority: official, type: terms, confidence: OFFICIAL_CURRENT, url: https://legal.mistral.ai/terms/commercial-terms-of-service/, claim: "Commercial terms cover business/org use and product-specific settings determine data use; Labs/Preview may use data and outputs for training.", checked_at: 2026-10-04, refresh_after_days: 30}
+  - {id: mistral-consumer-terms-row, authority: official, type: terms, confidence: OFFICIAL_CURRENT, url: https://legal.mistral.ai/terms/row-consumer-terms/, claim: "Rest of World consumer terms exclude Mistral Studio and APIs; Studio/API access is limited to business customers. Check applicable regional terms.", checked_at: 2026-10-04, refresh_after_days: 30}

@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://poolrouter.local/schema/provider.schema.json",
+  "title": "PoolRouter provider evidence record",
+  "type": "object",
+  "required": ["id", "display_name", "lifecycle", "admission", "access", "billing", "quota", "privacy", "legal", "evidence"],
+  "properties": {
+    "id": {"type": "string", "pattern": "^[a-z][a-z0-9-]*$"},
+    "display_name": {"type": "string", "minLength": 1},
+    "lifecycle": {"enum": ["PERMANENT_FREE", "FREE_ALLOWANCE", "TRIAL", "PROMOTION", "EVAL_ONLY", "PAID", "PAUSED", "RETIRED", "UNKNOWN"]},
+    "admission": {
+      "type": "object", "required": ["free_pool", "trial_pool", "eval_pool", "default_enabled"],
+      "properties": {
+        "free_pool": {"type": "boolean"}, "trial_pool": {"type": "boolean"},
+        "eval_pool": {"type": "boolean"}, "default_enabled": {"type": "boolean"},
+        "conditional": {"type": "boolean"}, "requires": {"type": "array", "items": {"type": "string"}}
+      }, "additionalProperties": false
+    },
+    "access": {"type": "object", "required": ["official_api", "auth", "credential_env"], "properties": {"official_api": {"type": "boolean"}, "auth": {"type": "string"}, "credential_env": {"type": "string"}}, "additionalProperties": false},
+    "billing": {
+      "type": "object", "required": ["price_free", "allowance_free", "possible_auto_charge", "zero_cost_basis", "conditional_on", "hard_local_quota_guard"],
+      "properties": {
+        "price_free": {"type": ["boolean", "string"]}, "allowance_free": {"type": "boolean"},
+        "possible_auto_charge": {"type": "boolean"}, "zero_cost_basis": {"type": "string"},
+        "conditional_on": {"type": "array", "items": {"type": "string"}},
+        "hard_local_quota_guard": {"type": "boolean"}, "free_plan_payment_method": {"type": ["boolean", "string"]},
+        "notes": {"type": "string"}
+      }, "additionalProperties": false
+    },
+    "quota": {"type": "object", "required": ["scope", "dimensions", "runtime_headers"], "properties": {"scope": {"type": "string"}, "dimensions": {"type": "array", "items": {"type": "string"}}, "runtime_headers": {"type": "boolean"}, "daily_allowance": {"type": ["integer", "number", "string"]}, "reset": {"type": "string"}, "notes": {"type": "string"}}, "additionalProperties": false},
+    "privacy": {"type": "object", "required": ["classification", "public_code", "private_code", "sensitive_data", "training_policy", "opt_out"], "properties": {"classification": {"type": "string"}, "public_code": {"type": ["boolean", "string"]}, "private_code": {"type": ["boolean", "string"]}, "sensitive_data": {"type": ["boolean", "string"]}, "training_policy": {"type": "string"}, "opt_out": {"type": "string"}, "notes": {"type": "string"}}, "additionalProperties": false},
+    "legal": {"type": "object", "required": ["intended_use", "private_single_user_gateway", "resale"], "properties": {"intended_use": {"type": "string"}, "api_customer_scope": {"type": "string"}, "personal_consumer_api": {"type": "string"}, "private_single_user_gateway": {"type": ["boolean", "string"]}, "resale": {"type": "boolean"}, "notes": {"type": "string"}}, "additionalProperties": false},
+    "account_assertions": {"type": "array", "items": {"type": "object", "required": ["key", "allowed_values", "source_confidence"], "properties": {"key": {"type": "string"}, "allowed_values": {"type": "array", "items": {"type": "string"}}, "source_confidence": {"const": "USER_ASSERTED"}}, "additionalProperties": false}},
+    "catalog": {"type": "object", "properties": {"dynamic": {"type": "boolean"}, "url": {"type": "string", "format": "uri"}, "admission_rule": {"type": "string"}, "aliases": {"type": "array", "items": {"type": "object", "required": ["name", "data_class"], "properties": {"name": {"type": "string"}, "data_class": {"type": "string"}}, "additionalProperties": false}}}, "additionalProperties": false},
+    "evidence": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/evidence"}}
+  },
+  "$defs": {
+    "evidence": {"type": "object", "required": ["id", "authority", "type", "confidence", "url", "claim", "checked_at", "refresh_after_days"], "properties": {
+      "id": {"type": "string"}, "authority": {"enum": ["official", "secondary", "runtime", "user"]},
+      "type": {"enum": ["pricing", "quota", "billing", "terms", "privacy", "model_catalog", "capability", "retirement", "promotion"]},
+      "confidence": {"enum": ["OFFICIAL_CURRENT", "OFFICIAL_STALE", "SECONDARY", "RUNTIME_OBSERVED", "USER_ASSERTED", "UNKNOWN"]},
+      "url": {"type": "string", "format": "uri"}, "claim": {"type": "string", "minLength": 1},
+      "checked_at": {"type": "string", "format": "date"}, "refresh_after_days": {"type": "integer", "minimum": 1}
+    }, "additionalProperties": false}
+  },
+  "additionalProperties": false
+}

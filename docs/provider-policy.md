@@ -30,3 +30,16 @@ Baseline date: 2026-10-04. This file records the user-supplied requirements base
 5. If price, quota scope, or post-limit behavior is unknown, fail closed and do not invoke the deployment.
 
 Official URLs and evidence claims remain to be attached during provider verification. M0 intentionally uses only the supplied baseline and local reference repositories; it did not browse or probe provider services.
+
+## M0.5 verified corrections (2026-10-04)
+
+M0's rows above are retained as the original, unverified baseline. The current seed records are in `registry/providers/` and the dated source inventory is generated at `docs/evidence/provider-evidence-2026-10-04.md`.
+
+| Provider | Verified M0.5 state | Correction to M0 baseline |
+|---|---|---|
+| Groq | `FREE_ALLOWANCE`, default candidate, conditional on account tier Free and fresh evidence. Organization-scoped RPM/RPD/TPM/TPD; Developer pay-as-you-go requires a valid payment method and explicit upgrade. | Capacity is organization-scoped; keys do not multiply quota. Account tier, exact model limits, and selected privacy controls remain account/runtime checks. |
+| OpenRouter | `FREE_ALLOWANCE`, default candidate subject to concrete model $0 input/output price. Free pricing page says 50 requests/day and no payment options. | Free tier lacks higher-tier Data Policy-Based Routing. Public code is the initial candidate; private code is conditional on exact upstream policy. `openrouter/free` is public-only. |
+| Cloudflare Workers AI | `FREE_ALLOWANCE`, conditional and disabled by default pending plan assertion and local Neuron guard. | Free overage fails, while Paid overage is billable. A known paid-only model record is `@cf/zai-org/glm-5.3`; the list is not exhaustive. |
+| Mistral Studio | `EVAL_ONLY`, opt-in, disabled by default. | Replaces M0's `FREE_ALLOWANCE` default candidate. Free mode is evaluation-oriented and pay-as-you-go can extend usage; business scope and product-specific training controls require confirmation. |
+
+Machine-readable evidence carries type-specific freshness, authority, and confidence. Full claims and official URLs are in the snapshot; no live inference or provider credentials were used.

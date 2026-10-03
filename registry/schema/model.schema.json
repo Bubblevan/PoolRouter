@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://poolrouter.local/schema/model.schema.json",
+  "title": "PoolRouter model availability and price evidence",
+  "type": "object",
+  "required": ["id", "availability", "evidence"],
+  "properties": {
+    "provider": {"type": "string"},
+    "id": {"type": "string", "minLength": 1},
+    "price_free": {"type": "boolean"},
+    "checked_at": {"type": "string", "format": "date"},
+    "refresh_after_days": {"type": "integer", "minimum": 1},
+    "input_price": {"type": ["number", "string"]},
+    "output_price": {"type": ["number", "string"]},
+    "availability": {"type": "object", "properties": {"workers_free": {"type": "boolean"}, "workers_paid": {"type": "boolean"}}, "additionalProperties": false},
+    "evidence": {"type": "array", "minItems": 1, "items": {
+      "type": "object",
+      "required": ["id", "authority", "type", "confidence", "url", "claim", "checked_at", "refresh_after_days"],
+      "properties": {
+        "id": {"type": "string"}, "authority": {"enum": ["official", "secondary", "runtime", "user"]},
+        "type": {"enum": ["pricing", "quota", "billing", "terms", "privacy", "model_catalog", "capability", "retirement", "promotion"]},
+        "confidence": {"enum": ["OFFICIAL_CURRENT", "OFFICIAL_STALE", "SECONDARY", "RUNTIME_OBSERVED", "USER_ASSERTED", "UNKNOWN"]},
+        "url": {"type": "string", "format": "uri"}, "claim": {"type": "string", "minLength": 1},
+        "checked_at": {"type": "string", "format": "date"}, "refresh_after_days": {"type": "integer", "minimum": 1}
+      }, "additionalProperties": false
+    }}
+  },
+  "additionalProperties": false
+}
