@@ -18,7 +18,9 @@ for path in sorted((root / "registry/providers").glob("*.yaml")):
     }[p["id"]]
     privacy = f"public={p['privacy']['public_code']}; private={p['privacy']['private_code']}; sensitive={p['privacy']['sensitive_data']}"
     terms = p["legal"]["intended_use"]
-    rows.append(f"| {p['display_name']} | `{p['lifecycle']}` | {p['admission']['default_enabled']} (conditional={p['admission'].get('conditional', False)}) | {p['billing']['zero_cost_basis']} | {p['quota']['scope']} | {p['billing']['possible_auto_charge']} | {privacy} | {terms} | 2026-10-04 | {sources} | {questions} |")
+    scope = p["quota"]["scope"]
+    scope = scope if isinstance(scope, str) else "; ".join(f"{k}={v}" for k, v in scope.items())
+    rows.append(f"| {p['display_name']} | `{p['lifecycle']}` | {p['admission']['default_enabled']} (conditional={p['admission'].get('conditional', False)}) | {p['billing']['zero_cost_basis']} | {scope} | {p['billing']['possible_auto_charge']} | {privacy} | {terms} | 2026-10-04 | {sources} | {questions} |")
 
 doc = """# Provider evidence snapshot — 2026-10-04
 

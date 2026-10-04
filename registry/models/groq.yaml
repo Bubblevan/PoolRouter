@@ -1,0 +1,19 @@
+provider: groq
+snapshot_checked_at: 2026-10-04
+models:
+  - id: openai/gpt-oss-20b
+    concrete_model: true
+    free_plan_eligible: true
+    developer_list_price:
+      input_per_million: 0.075
+      output_per_million: 0.30
+    free_plan_limits:
+      rpm: 30
+      rpd: 1000
+      tpm: 8000
+      tpd: 200000
+    capabilities: [text, streaming, function_calling, json_mode, responses_api]
+    evidence:
+      - {id: groq-gpt-oss-free-plan, authority: official, type: quota, confidence: OFFICIAL_CURRENT, url: https://console.groq.com/docs/rate-limits, claim: "The Free Plan table lists openai/gpt-oss-20b at 30 RPM, 1K RPD, 8K TPM, and 200K TPD.", checked_at: 2026-10-04, refresh_after_days: 7}
+      - {id: groq-gpt-oss-capabilities, authority: official, type: capability, confidence: OFFICIAL_CURRENT, url: https://console.groq.com/docs/model/openai/gpt-oss-20b, claim: "Model card lists text input/output and Tool Use, JSON Object Mode, and JSON Schema Mode capabilities; live Responses probes verified message and function_call output.", checked_at: 2026-10-04, refresh_after_days: 30}
+      - {id: groq-gpt-oss-developer-price, authority: official, type: pricing, confidence: OFFICIAL_CURRENT, url: https://console.groq.com/docs/model/openai/gpt-oss-20b, claim: "Developer-tier list price is $0.075 per million input tokens and $0.30 per million output tokens; this price does not override the Free Plan allowance when the account remains Free.", checked_at: 2026-10-04, refresh_after_days: 7}

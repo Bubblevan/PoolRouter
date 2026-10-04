@@ -78,19 +78,53 @@ def test_cloudflare_paid_only_model_not_free_admitted():
                           account_assertions={"account_plan_free": "free"})[0] is False
 
 
+def test_groq_free_plan_model_record_is_well_formed_and_developer_price_is_separate():
+    data = yaml.safe_load((ROOT / "registry/models/groq.yaml").read_text(encoding="utf-8"))
+    model = data["models"][0]
+    from jsonschema import Draft202012Validator, FormatChecker
+    schema = __import__("json").loads((ROOT / "registry/schema/model.schema.json").read_text(encoding="utf-8"))
+    checked = {**model, "provider": "groq", "checked_at": data["snapshot_checked_at"].isoformat(),
+               "refresh_after_days": 7,
+               "evidence": [{**item, "checked_at": item["checked_at"].isoformat()} for item in model["evidence"]]}
+    assert list(Draft202012Validator(schema, format_checker=FormatChecker()).iter_errors(checked)) == []
+    assert model["free_plan_eligible"] is True
+    assert model["developer_list_price"] == {"input_per_million": 0.075, "output_per_million": 0.30}
+
+
 def test_mistral_not_default_enabled():
     p = provider("mistral")
     assert p["admission"]["default_enabled"] is False
     assert p["admission"]["free_pool"] is False
 
 
-def test_openrouter_needs_current_concrete_zero_price():
+def test_openrouter_requires_runtime_tier_check_not_operator_assertion():
     p = provider("openrouter")
-    assert can_admit_free(p)[0] is False
-    model = {"concrete_model": True, "price_free": True, "input_price": 0, "output_price": 0,
-             "evidence_confidence": "OFFICIAL_CURRENT", "evidence_fresh": True}
-    ok, _ = can_admit_free(p, model=model, account_assertions={"free_account_plan": "free"})
-    assert ok is True
+    assert can_admit_free(p, account_assertions={"free_account_plan": "free"})[0] is False
+    assert can_admit_free(p, account_assertions={"is_free_tier": "true"})[0] is True
+
+
+def test_groq_nonzero_list_price_can_enter_free_pool_on_verified_free_tier():
+    p = provider("groq")
+    model = {"concrete_model": True, "free_plan_eligible": True,
+             "evidence_confidence": "OFFICIAL_CURRENT", "evidence_fresh": True,
+             "input_price": 0.075, "output_price": 0.30}
+    ok, reason = can_admit_free(p, model=model,
+                                account_assertions={"account_tier_is_free": "free"})
+    assert ok is True, reason
+
+
+def test_groq_paid_account_is_not_admitted_despite_free_plan_model_entry():
+    p = provider("groq")
+    model = {"concrete_model": True, "free_plan_eligible": True,
+             "evidence_confidence": "OFFICIAL_CURRENT", "evidence_fresh": True,
+             "input_price": 0.075, "output_price": 0.30}
+    assert can_admit_free(p, model=model,
+                          account_assertions={"account_tier_is_free": "paid"})[0] is False
+
+
+def test_openrouter_requires_runtime_free_tier_boolean():
+    p = provider("openrouter")
+    assert can_admit_free(p, account_assertions={"is_free_tier": "false"})[0] is False
 
 
 def test_default_freshness_windows_are_type_specific():

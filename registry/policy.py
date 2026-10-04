@@ -79,6 +79,18 @@ def can_admit_free(provider: dict[str, Any], *, model: dict[str, Any] | None = N
         elif condition in {"concrete_model", "current_model_free_availability"}:
             if not model:
                 return False, "model-specific evidence required"
+        elif condition == "current_free_plan_model_eligibility":
+            if (not model or not model.get("concrete_model")
+                    or model.get("free_plan_eligible") is not True
+                    or model.get("evidence_confidence") not in {"OFFICIAL_CURRENT", "RUNTIME_OBSERVED"}
+                    or not model.get("evidence_fresh", False)):
+                return False, "model must be currently eligible on the verified free plan"
+        elif condition == "runtime_openrouter_free_tier":
+            if not account_assertions or account_assertions.get("is_free_tier") != "true":
+                return False, "OpenRouter runtime key status must confirm is_free_tier=true"
+        elif condition == "openrouter_free_alias_public_only":
+            if not model or model.get("model_id") != "openrouter/free" or model.get("data_class") != "public":
+                return False, "openrouter/free is restricted to explicitly public requests"
         elif condition == "current_model_pricing":
             if (not model or model.get("evidence_confidence") not in {"OFFICIAL_CURRENT", "RUNTIME_OBSERVED"}
                     or not model.get("evidence_fresh", False) or model.get("price_free") is not True):

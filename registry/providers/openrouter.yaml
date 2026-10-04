@@ -1,23 +1,23 @@
 id: openrouter
 display_name: OpenRouter
 lifecycle: FREE_ALLOWANCE
-admission: {free_pool: true, trial_pool: false, eval_pool: false, default_enabled: true, conditional: true, requires: [concrete_model, current_model_pricing, current_zero_price, fresh_official_evidence]}
+admission: {free_pool: true, trial_pool: false, eval_pool: false, default_enabled: true, conditional: true, requires: [runtime_openrouter_free_tier, fresh_official_evidence]}
 access: {official_api: true, auth: api_key, credential_env: OPENROUTER_API_KEY}
 billing:
   price_free: model_dependent
   allowance_free: true
   possible_auto_charge: false
   zero_cost_basis: free_plan_request_allowance_and_concrete_model_zero_price
-  conditional_on: [free_account_plan, concrete_model_input_and_output_price_zero]
+  conditional_on: [runtime_openrouter_free_tier]
   hard_local_quota_guard: false
   free_plan_payment_method: false
   notes: Free plan pricing page currently states no payment options and 50 requests/day. No silent transition to paid usage is documented; do not add payment instruments or treat paid model IDs as free.
 quota:
-  scope: account
+  scope: {hard_ceiling: account, credential_belongs_to: account}
   dimensions: [rpd]
-  runtime_headers: true
+  runtime_headers: unknown
   daily_allowance: 50
-  reset: provider-defined daily window; confirm from current account/provider response before runtime implementation
+  reset: provider-defined daily window
   notes: Pricing page describes 50 requests per day for the Free plan; model-specific free status is volatile.
 privacy:
   classification: CONDITIONAL
@@ -39,7 +39,9 @@ catalog:
     - {name: openrouter/free, data_class: public_only}
     - {name: provider/model:free, data_class: individually_reviewed}
 evidence:
-  - {id: openrouter-free-pricing, authority: official, type: pricing, confidence: OFFICIAL_CURRENT, url: https://openrouter.ai/pricing, claim: "Free plan lists 25+ free models, API access, no payment options, and 50 requests/day; availability and per-model pricing must be checked dynamically.", checked_at: 2026-10-04, refresh_after_days: 7}
+  - {id: openrouter-free-pricing, authority: official, type: pricing, confidence: OFFICIAL_CURRENT, url: https://openrouter.ai/pricing, claim: "Free plan lists free models and 50 requests/day; availability and per-model pricing must be checked dynamically.", checked_at: 2026-10-04, refresh_after_days: 7}
+  - {id: openrouter-responses-contract, authority: official, type: capability, confidence: OFFICIAL_CURRENT, url: https://openrouter.ai/docs/api/api-reference/responses/create-responses, claim: "Responses endpoint supports non-streaming and SSE requests; current contract smoke verified message and function_call output for openrouter/free. Runtime model selection can vary.", checked_at: 2026-10-04, refresh_after_days: 30}
+  - {id: openrouter-runtime-free-tier-check, authority: runtime, type: billing, confidence: RUNTIME_OBSERVED, url: https://openrouter.ai/docs/api/api-reference/keys/get-current-key, claim: "The authenticated GET /api/v1/key returned is_free_tier=true; only this boolean was retained.", checked_at: 2026-10-04, refresh_after_days: 1}
   - {id: openrouter-free-billing, authority: official, type: billing, confidence: OFFICIAL_CURRENT, url: https://openrouter.ai/pricing, claim: "Free plan has no payment options; do not attach paid credits/payment methods to a free-only account state.", checked_at: 2026-10-04, refresh_after_days: 14}
   - {id: openrouter-terms, authority: official, type: terms, confidence: OFFICIAL_CURRENT, url: https://openrouter.ai/terms, claim: "Terms make the account holder responsible for API credential activity and charges, prohibit reselling API access and creating multiple accounts to bypass limits, and leave model terms/provider practices model-specific.", checked_at: 2026-10-04, refresh_after_days: 30}
   - {id: openrouter-privacy-routing, authority: official, type: privacy, confidence: OFFICIAL_CURRENT, url: https://openrouter.ai/docs/guides/privacy/provider-logging, claim: "Provider logging and training policies vary; controls and provider eligibility vary by plan, and free plan does not include Data Policy-Based Routing.", checked_at: 2026-10-04, refresh_after_days: 30}

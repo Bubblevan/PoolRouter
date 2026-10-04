@@ -1,0 +1,24 @@
+{
+  "provider": "groq",
+  "endpoint": "/openai/v1/responses",
+  "model": "openai/gpt-oss-20b",
+  "http_status": 200,
+  "nonstream": {
+    "object": "response",
+    "status": "completed",
+    "output_types": ["reasoning", "message"],
+    "message_content_types": ["output_text"]
+  },
+  "stream": {
+    "content_type": "text/event-stream",
+    "event_types": ["response.created", "response.in_progress", "response.output_item.added", "response.content_part.added", "response.reasoning_text.delta", "response.output_text.delta", "response.output_text.done", "response.completed", "[DONE]"]
+  },
+  "function_call": {
+    "object": "response",
+    "status": "completed",
+    "output_types": ["reasoning", "function_call"],
+    "function_name": "greet",
+    "arguments_shape": {"message": "string"}
+  },
+  "sanitized": true
+}

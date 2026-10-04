@@ -1,21 +1,25 @@
 id: groq
 display_name: Groq
 lifecycle: FREE_ALLOWANCE
-admission: {free_pool: true, trial_pool: false, eval_pool: false, default_enabled: true, conditional: true, requires: [account_tier_is_free, concrete_model, current_model_pricing, fresh_official_evidence]}
+admission: {free_pool: true, trial_pool: false, eval_pool: false, default_enabled: true, conditional: true, requires: [account_tier_is_free, concrete_model, current_free_plan_model_eligibility, fresh_official_evidence]}
 access: {official_api: true, auth: api_key, credential_env: GROQ_API_KEY}
 billing:
-  price_free: model_dependent
+  price_free: false
   allowance_free: true
   possible_auto_charge: false
-  zero_cost_basis: official_free_plan
+  zero_cost_basis: official_free_account_allowance
   conditional_on: [account_tier_is_free]
   hard_local_quota_guard: false
   free_plan_payment_method: false
   notes: Developer pay-as-you-go requires opting into the paid Developer tier and adding a valid payment method; account tier is an explicit assertion.
 quota:
-  scope: organization
+  scope:
+    hard_ceiling: organization
+    project_limits: true
+    credential_belongs_to: project
+    organization_only_dimensions: [itpm, otpm]
   dimensions: [rpm, rpd, tpm, tpd]
-  runtime_headers: true
+  runtime_headers: observed
   notes: Exact model/org limits are read from the Console and runtime headers. Multiple keys in one organization do not multiply quota; headers expose only selected dimensions.
 privacy:
   classification: REVIEWED
@@ -32,8 +36,9 @@ legal:
   resale: false
   notes: Services Agreement permits API integration into a Customer Application for End Users, but disallows resale/lease of account access and does not govern consumer use.
 evidence:
-  - {id: groq-rate-limits, authority: official, type: quota, confidence: OFFICIAL_CURRENT, url: https://console.groq.com/docs/rate-limits, claim: "Limits are measured at organization scope; RPM/RPD/TPM/TPD apply, exact limits are in the account Console, and response headers report selected rate-limit dimensions.", checked_at: 2026-10-04, refresh_after_days: 7}
+  - {id: groq-rate-limits, authority: official, type: quota, confidence: OFFICIAL_CURRENT, url: https://console.groq.com/docs/rate-limits, claim: "Free Plan table lists openai/gpt-oss-20b at 30 RPM, 1K RPD, 8K TPM, and 200K TPD; limits are organization-scoped, while ITPM/OTPM are separate project limits when configured. Headers expose selected dimensions.", checked_at: 2026-10-04, refresh_after_days: 7}
   - {id: groq-billing-faq, authority: official, type: billing, confidence: OFFICIAL_CURRENT, url: https://console.groq.com/docs/billing-faqs, claim: "Upgrading Free to Developer requires a valid payment method; Developer is pay-as-you-go. Free tier use is limited and does not by itself enroll the account in paid usage.", checked_at: 2026-10-04, refresh_after_days: 14}
   - {id: groq-services-agreement, authority: official, type: terms, confidence: OFFICIAL_CURRENT, url: https://console.groq.com/docs/legal/services-agreement, claim: "Agreement supports API integration in a Customer Application and End User access, prohibits resale/lease of Account access, and excludes consumer use.", checked_at: 2026-10-04, refresh_after_days: 30}
   - {id: groq-your-data, authority: official, type: privacy, confidence: OFFICIAL_CURRENT, url: https://console.groq.com/docs/your-data, claim: "Inference data is not retained by default, with limited service/reliability/abuse retention and account Data Controls; verify eligible ZDR settings.", checked_at: 2026-10-04, refresh_after_days: 30}
   - {id: groq-model-pricing, authority: official, type: pricing, confidence: OFFICIAL_CURRENT, url: https://groq.com/pricing, claim: "Pricing and model availability are model-specific; recheck the official current pricing/catalog before admitting a concrete deployment.", checked_at: 2026-10-04, refresh_after_days: 7}
+  - {id: groq-responses-contract, authority: official, type: capability, confidence: OFFICIAL_CURRENT, url: https://console.groq.com/docs/responses-api, claim: "Responses API supports non-streaming and SSE responses; current contract smoke verified message output and function_call output for openai/gpt-oss-20b. store remains false.", checked_at: 2026-10-04, refresh_after_days: 30}
