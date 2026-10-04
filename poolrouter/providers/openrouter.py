@@ -31,7 +31,7 @@ class OpenRouterProvider:
             provider = load_provider(Path(__file__).resolve().parents[2] / "registry/providers/openrouter.yaml")
             return can_admit_free(provider, model={"model_id": "openrouter/free", "data_class": "public"},
                                   account_assertions={"is_free_tier": "true"})[0]
-        except (httpx.HTTPError, OSError, KeyError, ValueError, TypeError):
+        except (httpx.HTTPError, OSError, AttributeError, KeyError, ValueError, TypeError):
             return False
 
     async def free_models(self) -> list[dict]:
@@ -52,8 +52,8 @@ class OpenRouterProvider:
                 except (InvalidOperation, TypeError):
                     free = False
                 if (model.get("id") and free
-                        and architecture.get("modality", "text->text") == "text->text"):
+                        and architecture.get("modality") == "text->text"):
                     result.append({"id": model["id"], "input_price": 0, "output_price": 0})
             return result
-        except (httpx.HTTPError, ValueError, TypeError):
+        except (httpx.HTTPError, AttributeError, ValueError, TypeError):
             return []

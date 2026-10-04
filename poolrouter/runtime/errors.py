@@ -36,6 +36,7 @@ def normalize_failure(provider: str, model: str, status: int | None, code: str |
     text = re.sub(r"(?i)(bearer\s+)[^\s,;]+", r"\1[REDACTED]", message)
     text = re.sub(r"(?i)(api[_ -]?key|token)[=: ]+[^\s,;]+", r"\1=[REDACTED]", text)
     text = re.sub(r"(?:gsk_[A-Za-z0-9_-]{12,}|sk-or-v1-[A-Za-z0-9_-]{12,})", "[REDACTED]", text)
-    return ProviderFailure(provider, model, status, code, category,
+    safe_code = re.sub(r"(?:gsk_[A-Za-z0-9_-]{12,}|sk-or-v1-[A-Za-z0-9_-]{12,})", "[REDACTED]", code or "")[:80] or None
+    return ProviderFailure(provider, model, status, safe_code, category,
                            category in FALLBACK_CATEGORIES - {"DEGRADED_RESPONSE"},
                            retry_after, text[:240])

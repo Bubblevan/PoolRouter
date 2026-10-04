@@ -19,7 +19,14 @@ for path in sorted((root / "registry/providers").glob("*.yaml")):
     privacy = f"public={p['privacy']['public_code']}; private={p['privacy']['private_code']}; sensitive={p['privacy']['sensitive_data']}"
     terms = p["legal"]["intended_use"]
     scope = p["quota"]["scope"]
-    scope = scope if isinstance(scope, str) else "; ".join(f"{k}={v}" for k, v in scope.items())
+    if isinstance(scope, dict):
+        def fmt(value):
+            if isinstance(value, list):
+                return "[" + ", ".join(map(str, value)) + "]"
+            if isinstance(value, bool):
+                return str(value).lower()
+            return str(value)
+        scope = "; ".join(f"{k}={fmt(v)}" for k, v in scope.items())
     rows.append(f"| {p['display_name']} | `{p['lifecycle']}` | {p['admission']['default_enabled']} (conditional={p['admission'].get('conditional', False)}) | {p['billing']['zero_cost_basis']} | {scope} | {p['billing']['possible_auto_charge']} | {privacy} | {terms} | 2026-10-04 | {sources} | {questions} |")
 
 doc = """# Provider evidence snapshot — 2026-10-04
@@ -40,4 +47,4 @@ Groq and OpenRouter account conditions, exact quotas, concrete model prices, and
 """
 out = root / "docs/evidence/provider-evidence-2026-10-04.md"
 out.parent.mkdir(parents=True, exist_ok=True)
-out.write_text(doc, encoding="utf-8")
+out.write_bytes(doc.encode("utf-8"))

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from contextlib import asynccontextmanager
 from typing import Any
 
 import httpx
@@ -10,13 +11,14 @@ from fastapi.responses import JSONResponse, StreamingResponse
 from poolrouter.config import Settings
 from poolrouter.providers.openrouter import OpenRouterProvider
 from poolrouter.api.auth import auth_dependency
+from poolrouter.api.errors import error_response
 from poolrouter.runtime.admission import Admission
 from poolrouter.runtime.attempts import may_fallback
 from poolrouter.runtime.errors import ProviderFailure, normalize_failure
 from poolrouter.runtime.health import Health
 from poolrouter.runtime.models import ALIASES, Deployment
 from poolrouter.runtime.quota import QuotaLedger
-from poolrouter.transports.chat_litellm import chat_completion
+from poolrouter.transports.chat_litellm import chat_completion, close_chat_http_client, response_quota_headers
 from poolrouter.transports.responses_native import post_response, semantic_response_ok, strip_reasoning
 
 
@@ -29,7 +31,15 @@ def create_app(settings: Settings | None = None, *, client: httpx.AsyncClient | 
     quota = QuotaLedger()
     health = Health()
 
-    app = FastAPI(title="PoolRouter", version="0.1.0")
+    @asynccontextmanager
+    async def lifespan(_app: FastAPI):
+        try:
+            yield
+        finally:
+            await close_chat_http_client()
+            await client.aclose()
+
+    app = FastAPI(title="PoolRouter", version="0.1.0", lifespan=lifespan)
     app.state.settings = config
     app.state.http_client = client
     app.state.quota = quota
@@ -42,15 +52,6 @@ def create_app(settings: Settings | None = None, *, client: httpx.AsyncClient | 
             raise ProviderFailure("poolrouter", "", 403, "public_class_required", "POLICY", False, None,
                                   "Free public aliases accept only requests explicitly classified as public.")
         return header
-
-    def safe_error(failure: ProviderFailure, exhausted: bool = False) -> JSONResponse:
-        if exhausted:
-            return JSONResponse(status_code=503, content={"error": {
-                "code": "FREE_POOL_EXHAUSTED",
-                "message": "No eligible zero-cost deployment is currently available.",
-            }})
-        return JSONResponse(status_code=failure.http_status or 502,
-                             content={"error": failure.as_dict()})
 
     def response_headers(target: Deployment, attempts: int) -> dict[str, str]:
         return {"X-PoolRouter-Provider": target.provider,
@@ -105,12 +106,18 @@ def create_app(settings: Settings | None = None, *, client: httpx.AsyncClient | 
         return dict(value)
 
     def strip_chat_reasoning(value: dict) -> dict:
+        def scrub(part):
+            if isinstance(part, dict):
+                for key in list(part):
+                    if key.lower() in {"reasoning", "reasoning_content", "reasoning_details"}:
+                        part.pop(key, None)
+                    else:
+                        scrub(part[key])
+            elif isinstance(part, list):
+                for item in part:
+                    scrub(item)
         for choice in value.get("choices", []):
-            for field in ("message", "delta"):
-                segment = choice.get(field)
-                if isinstance(segment, dict):
-                    segment.pop("reasoning", None)
-                    segment.pop("reasoning_content", None)
+            scrub(choice)
         return value
 
     def observe_chat_headers(target: Deployment, result: Any) -> None:
@@ -118,7 +125,9 @@ def create_app(settings: Settings | None = None, *, client: httpx.AsyncClient | 
             return
         hidden = getattr(result, "_hidden_params", {}) or {}
         headers = hidden.get("headers", {}) if isinstance(hidden, dict) else {}
-        quota.observe_groq_headers({str(k).lower(): str(v) for k, v in dict(headers).items()})
+        selected = {str(k).lower(): str(v) for k, v in dict(headers or {}).items()}
+        selected.update(response_quota_headers())
+        quota.observe_groq_headers(selected)
 
     def stream_has_output(chunk: dict) -> bool:
         for choice in chunk.get("choices", []):
@@ -128,13 +137,9 @@ def create_app(settings: Settings | None = None, *, client: httpx.AsyncClient | 
         return False
 
     def chunk_frame(chunk: dict, alias: str) -> bytes:
-        for choice in chunk.get("choices", []):
-            delta = choice.get("delta")
-            if isinstance(delta, dict):
-                delta.pop("reasoning", None)
-                delta.pop("reasoning_content", None)
-        chunk["model"] = alias
-        return ("data: " + json.dumps(chunk, ensure_ascii=False, separators=(",", ":")) + "\n\n").encode()
+        scrubbed = strip_chat_reasoning(chunk)
+        scrubbed["model"] = alias
+        return ("data: " + json.dumps(scrubbed, ensure_ascii=False, separators=(",", ":")) + "\n\n").encode()
 
     @app.get("/healthz")
     async def healthz():
@@ -155,9 +160,9 @@ def create_app(settings: Settings | None = None, *, client: httpx.AsyncClient | 
         try:
             pool = await available(alias, data_class(classification))
         except ProviderFailure as failure:
-            return safe_error(failure)
+            return error_response(failure)
         if not isinstance(payload.get("messages"), list) or not payload["messages"]:
-            return safe_error(normalize_failure("poolrouter", alias, 400, "invalid_messages",
+            return error_response(normalize_failure("poolrouter", alias, 400, "invalid_messages",
                                                 "messages must be a non-empty array"))
         if payload.get("stream"):
             return await chat_stream(alias, payload, pool)
@@ -183,8 +188,8 @@ def create_app(settings: Settings | None = None, *, client: httpx.AsyncClient | 
                 health.record(target.provider, False)
             failures.append(failure)
             if not may_fallback(failure):
-                return safe_error(failure)
-        return safe_error(failures[-1] if failures else normalize_failure(
+                return error_response(failure)
+        return error_response(failures[-1] if failures else normalize_failure(
             "poolrouter", alias, 503, "no_eligible_deployment", "No eligible free provider"), exhausted=True)
 
     async def chat_stream(alias: str, payload: dict, pool: list[Deployment]):
@@ -194,6 +199,7 @@ def create_app(settings: Settings | None = None, *, client: httpx.AsyncClient | 
             iterator = None
             try:
                 result = await chat_call(config, target, {**payload, "stream": True})
+                observe_chat_headers(target, result)
                 iterator = result.__aiter__()
                 buffered = []
                 first = None
@@ -231,8 +237,8 @@ def create_app(settings: Settings | None = None, *, client: httpx.AsyncClient | 
                                          headers=response_headers(target, number))
             failures.append(failure)
             if not may_fallback(failure):
-                return safe_error(failure)
-        return safe_error(failures[-1] if failures else normalize_failure(
+                return error_response(failure)
+        return error_response(failures[-1] if failures else normalize_failure(
             "poolrouter", alias, 503, "no_eligible_deployment", "No eligible free provider"), exhausted=True)
 
     @app.post("/v1/responses", dependencies=[Depends(auth)])
@@ -242,14 +248,14 @@ def create_app(settings: Settings | None = None, *, client: httpx.AsyncClient | 
         try:
             pool = await available(alias, data_class(classification))
         except ProviderFailure as failure:
-            return safe_error(failure)
+            return error_response(failure)
         unsupported = {"previous_response_id", "background", "prompt", "prompt_cache_key",
                        "safety_identifier", "include", "truncation"}.intersection(payload)
         if unsupported:
-            return safe_error(normalize_failure("poolrouter", alias, 400, "unsupported_responses_feature",
+            return error_response(normalize_failure("poolrouter", alias, 400, "unsupported_responses_feature",
                                                 "This Responses feature is not supported by the M1A provider contract."))
         if "input" not in payload:
-            return safe_error(normalize_failure("poolrouter", alias, 400, "missing_input", "input is required"))
+            return error_response(normalize_failure("poolrouter", alias, 400, "missing_input", "input is required"))
         if payload.get("stream"):
             return await responses_stream(alias, payload, pool)
         failures: list[ProviderFailure] = []
@@ -278,8 +284,8 @@ def create_app(settings: Settings | None = None, *, client: httpx.AsyncClient | 
                 health.record(target.provider, False)
             failures.append(failure)
             if not may_fallback(failure):
-                return safe_error(failure)
-        return safe_error(failures[-1] if failures else normalize_failure(
+                return error_response(failure)
+        return error_response(failures[-1] if failures else normalize_failure(
             "poolrouter", alias, 503, "no_eligible_deployment", "No eligible free provider"), exhausted=True)
 
     async def responses_stream(alias: str, payload: dict, pool: list[Deployment]):
@@ -367,8 +373,8 @@ def create_app(settings: Settings | None = None, *, client: httpx.AsyncClient | 
                 health.record(target.provider, False)
             failures.append(failure)
             if not may_fallback(failure):
-                return safe_error(failure)
-        return safe_error(failures[-1] if failures else normalize_failure(
+                return error_response(failure)
+        return error_response(failures[-1] if failures else normalize_failure(
             "poolrouter", alias, 503, "no_eligible_deployment", "No eligible free provider"), exhausted=True)
 
     return app

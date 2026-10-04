@@ -100,7 +100,8 @@ def test_mistral_not_default_enabled():
 def test_openrouter_requires_runtime_tier_check_not_operator_assertion():
     p = provider("openrouter")
     assert can_admit_free(p, account_assertions={"free_account_plan": "free"})[0] is False
-    assert can_admit_free(p, account_assertions={"is_free_tier": "true"})[0] is True
+    alias = {"model_id": "openrouter/free", "data_class": "public"}
+    assert can_admit_free(p, model=alias, account_assertions={"is_free_tier": "true"})[0] is True
 
 
 def test_groq_nonzero_list_price_can_enter_free_pool_on_verified_free_tier():
@@ -124,7 +125,8 @@ def test_groq_paid_account_is_not_admitted_despite_free_plan_model_entry():
 
 def test_openrouter_requires_runtime_free_tier_boolean():
     p = provider("openrouter")
-    assert can_admit_free(p, account_assertions={"is_free_tier": "false"})[0] is False
+    alias = {"model_id": "openrouter/free", "data_class": "public"}
+    assert can_admit_free(p, model=alias, account_assertions={"is_free_tier": "false"})[0] is False
 
 
 def test_default_freshness_windows_are_type_specific():
