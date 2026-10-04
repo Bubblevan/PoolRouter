@@ -1,7 +1,7 @@
 id: openrouter
 display_name: OpenRouter
 lifecycle: FREE_ALLOWANCE
-admission: {free_pool: true, trial_pool: false, eval_pool: false, default_enabled: true, conditional: true, requires: [runtime_openrouter_free_tier, fresh_official_evidence]}
+admission: {free_pool: true, trial_pool: false, eval_pool: false, default_enabled: true, conditional: true, requires: [runtime_openrouter_free_tier, openrouter_free_alias_public_only, fresh_official_evidence]}
 access: {official_api: true, auth: api_key, credential_env: OPENROUTER_API_KEY}
 billing:
   price_free: model_dependent
